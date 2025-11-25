@@ -1,8 +1,9 @@
-import sys
-import random
 import math
+import random
+import sys
+from typing import List, Optional, Tuple
+
 import pygame
-from typing import List, Tuple, Optional
 
 # -----------------------------
 # Constants
@@ -85,16 +86,18 @@ class Maze:
         self.rows = len(layout)
         self.cols = len(layout[0])
         self.grid = [list(row) for row in layout]
-        self.pellet_count = sum(row.count('.') for row in layout) + sum(row.count('o') for row in layout)
+        self.pellet_count = sum(row.count(".") for row in layout) + sum(
+            row.count("o") for row in layout
+        )
 
     def is_wall(self, r: int, c: int) -> bool:
         if r < 0 or r >= self.rows or c < 0 or c >= self.cols:
             return True
-        return self.grid[r][c] == '#'
+        return self.grid[r][c] == "#"
 
     def is_junction(self, r: int, c: int) -> bool:
         # A simple junction detection: count available non-wall neighbors
-        directions = [(1,0), (-1,0), (0,1), (0,-1)]
+        directions = [(1, 0), (-1, 0), (0, 1), (0, -1)]
         open_neighbors = 0
         for dr, dc in directions:
             nr, nc = r + dr, c + dc
@@ -104,9 +107,9 @@ class Maze:
 
     def eat_pellet(self, r: int, c: int) -> Optional[str]:
         # returns '.' or 'o' if eaten, else None
-        if self.grid[r][c] in ('.', 'o'):
+        if self.grid[r][c] in (".", "o"):
             ch = self.grid[r][c]
-            self.grid[r][c] = ' '
+            self.grid[r][c] = " "
             self.pellet_count -= 1
             return ch
         return None
@@ -120,12 +123,18 @@ class Maze:
                 ch = self.grid[r][c]
                 x = c * TILE_SIZE
                 y = r * TILE_SIZE + UI_HEIGHT
-                if ch == '#':
-                    pygame.draw.rect(surface, BLUE, (x, y, TILE_SIZE, TILE_SIZE), border_radius=4)
-                elif ch == '.':
-                    pygame.draw.circle(surface, WHITE, (x + TILE_SIZE//2, y + TILE_SIZE//2), 3)
-                elif ch == 'o':
-                    pygame.draw.circle(surface, WHITE, (x + TILE_SIZE//2, y + TILE_SIZE//2), 6, 2)
+                if ch == "#":
+                    pygame.draw.rect(
+                        surface, BLUE, (x, y, TILE_SIZE, TILE_SIZE), border_radius=4
+                    )
+                elif ch == ".":
+                    pygame.draw.circle(
+                        surface, WHITE, (x + TILE_SIZE // 2, y + TILE_SIZE // 2), 3
+                    )
+                elif ch == "o":
+                    pygame.draw.circle(
+                        surface, WHITE, (x + TILE_SIZE // 2, y + TILE_SIZE // 2), 6, 2
+                    )
 
 
 class Entity:
@@ -155,10 +164,10 @@ class Entity:
         self.x += self.dir[1] * speed
         self.y += self.dir[0] * speed
         # wrap tunnel horizontally
-        if self.x < -TILE_SIZE//2:
-            self.x = SCREEN_WIDTH + TILE_SIZE//2
-        elif self.x > SCREEN_WIDTH + TILE_SIZE//2:
-            self.x = -TILE_SIZE//2
+        if self.x < -TILE_SIZE // 2:
+            self.x = SCREEN_WIDTH + TILE_SIZE // 2
+        elif self.x > SCREEN_WIDTH + TILE_SIZE // 2:
+            self.x = -TILE_SIZE // 2
         # update grid coords when crossing centers
         new_row, new_col = pixel_to_grid((self.x, self.y))
         if 0 <= new_row < self.maze.rows and 0 <= new_col < self.maze.cols:
@@ -191,9 +200,9 @@ class Player(Entity):
         # pellet consumption
         if 0 <= self.row < self.maze.rows and 0 <= self.col < self.maze.cols:
             eaten = self.maze.eat_pellet(self.row, self.col)
-            if eaten == '.':
+            if eaten == ".":
                 self.score += 10
-            elif eaten == 'o':
+            elif eaten == "o":
                 self.score += 50
                 self.power_timer = POWER_DURATION
 
@@ -210,9 +219,9 @@ class Player(Entity):
 
 
 class Ghost(Entity):
-    NORMAL = 'normal'
-    VULNERABLE = 'vulnerable'
-    EATEN = 'eaten'  # returning to house
+    NORMAL = "normal"
+    VULNERABLE = "vulnerable"
+    EATEN = "eaten"  # returning to house
 
     def __init__(self, maze: Maze, row: int, col: int, color: Tuple[int, int, int]):
         super().__init__(maze, row, col)
@@ -258,7 +267,7 @@ class Ghost(Entity):
 
     def neighbors(self) -> List[Tuple[int, int]]:
         options = []
-        for d in [(1,0), (-1,0), (0,1), (0,-1)]:
+        for d in [(1, 0), (-1, 0), (0, 1), (0, -1)]:
             if not self.maze.is_wall(self.row + d[0], self.col + d[1]):
                 options.append(d)
         return options
@@ -294,11 +303,17 @@ class Ghost(Entity):
         return self.base_color
 
     def draw(self, surface: pygame.Surface):
-        pygame.draw.circle(surface, self.color(), (int(self.x), int(self.y)), self.radius)
+        pygame.draw.circle(
+            surface, self.color(), (int(self.x), int(self.y)), self.radius
+        )
         # eyes (simple)
         eye_offset = 4
-        pygame.draw.circle(surface, WHITE, (int(self.x) - eye_offset, int(self.y) - eye_offset), 3)
-        pygame.draw.circle(surface, WHITE, (int(self.x) + eye_offset, int(self.y) - eye_offset), 3)
+        pygame.draw.circle(
+            surface, WHITE, (int(self.x) - eye_offset, int(self.y) - eye_offset), 3
+        )
+        pygame.draw.circle(
+            surface, WHITE, (int(self.x) + eye_offset, int(self.y) - eye_offset), 3
+        )
 
 
 class ChaserGhost(Ghost):
@@ -349,13 +364,13 @@ class Game:
 
     def reset(self):
         self.maze = Maze(MAZE_LAYOUT)
-        pr, pc = self.find_spawn('P')
+        pr, pc = self.find_spawn("P")
         self.player = Player(self.maze, pr, pc)
         # ghosts
-        g_home = self.find_spawn('G')
-        g1r, g1c = self.find_spawn('1')
-        g2r, g2c = self.find_spawn('2')
-        g3r, g3c = self.find_spawn('3')
+        g_home = self.find_spawn("G")
+        g1r, g1c = self.find_spawn("1")
+        g2r, g2c = self.find_spawn("2")
+        g3r, g3c = self.find_spawn("3")
         self.ghosts: List[Ghost] = [
             ChaserGhost(self.maze, g1r, g1c, RED),
             RandomGhost(self.maze, g2r, g2c, CYAN),
@@ -414,7 +429,7 @@ class Game:
                         self.state_message = "Game Over - Press Enter to restart"
                     else:
                         # reset player and ghosts positions
-                        pr, pc = self.find_spawn('P')
+                        pr, pc = self.find_spawn("P")
                         self.player.row, self.player.col = pr, pc
                         self.player.align_to_center()
                         for ghost in self.ghosts:
@@ -438,7 +453,7 @@ class Game:
         self.screen.blit(lives_text, (SCREEN_WIDTH - 120, 10))
         if self.game_over or self.win:
             msg = self.font.render(self.state_message, True, GREY)
-            rect = msg.get_rect(center=(SCREEN_WIDTH//2, UI_HEIGHT//2))
+            rect = msg.get_rect(center=(SCREEN_WIDTH // 2, UI_HEIGHT // 2))
             self.screen.blit(msg, rect)
 
     def draw(self):
